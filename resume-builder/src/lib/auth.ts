@@ -1,29 +1,16 @@
 import { cookies } from "next/headers";
-import { jwtVerify, SignJWT } from "jose";
 import type { NextResponse } from "next/server";
+import {
+  AUTH_COOKIE_NAME,
+  AUTH_SESSION_MAX_AGE,
+  createSessionToken,
+  verifySessionToken,
+  type SessionPayload,
+} from "@/lib/auth-token";
 import { env } from "@/lib/env";
 
-const secret = new TextEncoder().encode(env.AUTH_JWT_SECRET);
-export const AUTH_COOKIE_NAME = "rb_session";
-
-export type SessionPayload = {
-  sub: string;
-  role: "USER" | "ADMIN";
-  sessionVersion: number;
-};
-
-export async function createSessionToken(payload: SessionPayload) {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(secret);
-}
-
-export async function verifySessionToken(token: string) {
-  const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"] });
-  return payload as unknown as SessionPayload;
-}
+export { AUTH_COOKIE_NAME, createSessionToken, verifySessionToken };
+export type { SessionPayload };
 
 export function setSessionCookie(response: NextResponse, token: string) {
   response.cookies.set(AUTH_COOKIE_NAME, token, {
@@ -31,7 +18,7 @@ export function setSessionCookie(response: NextResponse, token: string) {
     secure: env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: AUTH_SESSION_MAX_AGE,
   });
 }
 

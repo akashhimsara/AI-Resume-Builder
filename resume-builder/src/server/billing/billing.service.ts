@@ -1,9 +1,11 @@
 import Stripe from "stripe";
-import { env } from "@/lib/env";
+import { env, getStripeEnv } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
 
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
+const stripeEnv = getStripeEnv();
+
+const stripe = new Stripe(stripeEnv.STRIPE_SECRET_KEY, {
   apiVersion: "2026-02-25.clover",
 });
 
@@ -44,7 +46,7 @@ export async function createBillingCheckout(userId: string) {
     payment_method_types: ["card"],
     line_items: [
       {
-        price: env.STRIPE_PRICE_ID,
+        price: stripeEnv.STRIPE_PRICE_ID,
         quantity: 1,
       },
     ],
@@ -59,7 +61,7 @@ export async function createBillingCheckout(userId: string) {
 }
 
 export async function handleStripeWebhook(rawBody: string, signature: string) {
-  const event = stripe.webhooks.constructEvent(rawBody, signature, env.STRIPE_WEBHOOK_SECRET);
+  const event = stripe.webhooks.constructEvent(rawBody, signature, stripeEnv.STRIPE_WEBHOOK_SECRET);
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
@@ -75,13 +77,13 @@ export async function handleStripeWebhook(rawBody: string, signature: string) {
       where: { userId },
       create: {
         userId,
-        stripePriceId: env.STRIPE_PRICE_ID,
+        stripePriceId: stripeEnv.STRIPE_PRICE_ID,
         stripeSubscriptionId,
         status: "ACTIVE",
         currentPeriodEnd: null,
       },
       update: {
-        stripePriceId: env.STRIPE_PRICE_ID,
+        stripePriceId: stripeEnv.STRIPE_PRICE_ID,
         stripeSubscriptionId,
         status: "ACTIVE",
         currentPeriodEnd: null,

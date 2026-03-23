@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { env } from "@/lib/env";
+import { getOpenAIEnv } from "@/lib/env";
 
 export type ResumeGenerationInput = {
   fullName: string;
@@ -14,7 +14,8 @@ let openAiClient: OpenAI | null = null;
 
 function getClient() {
   if (!openAiClient) {
-    openAiClient = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+    const openAIEnv = getOpenAIEnv();
+    openAiClient = new OpenAI({ apiKey: openAIEnv.OPENAI_API_KEY });
   }
 
   return openAiClient;
@@ -22,9 +23,10 @@ function getClient() {
 
 export async function generateResumeDraft(input: ResumeGenerationInput) {
   const client = getClient();
+  const openAIEnv = getOpenAIEnv();
 
   const completion = await client.chat.completions.create({
-    model: env.OPENAI_MODEL,
+    model: openAIEnv.OPENAI_MODEL,
     temperature: 0.4,
     messages: [
       {

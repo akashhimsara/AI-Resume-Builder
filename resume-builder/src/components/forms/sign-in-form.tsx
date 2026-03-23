@@ -27,7 +27,14 @@ export function SignInForm() {
         body: JSON.stringify(form),
       });
 
-      const payload = (await response.json()) as { error?: { message: string } };
+      const responseText = await response.text();
+      let payload: { error?: { message?: string } } = {};
+
+      try {
+        payload = responseText ? (JSON.parse(responseText) as { error?: { message?: string } }) : {};
+      } catch {
+        payload = {};
+      }
 
       if (!response.ok) {
         throw new Error(payload.error?.message ?? "Unable to sign in");
