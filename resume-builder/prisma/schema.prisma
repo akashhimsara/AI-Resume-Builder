@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum SubscriptionStatus {
+  INACTIVE
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+model User {
+  id             String             @id @default(cuid())
+  email          String             @unique
+  passwordHash   String
+  fullName       String
+  role           UserRole           @default(USER)
+  stripeCustomerId String?          @unique
+  sessionVersion Int                @default(1)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  resumes        Resume[]
+  subscription   Subscription?
+  usageEvents    UsageEvent[]
+}
+
+model Resume {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  summary     String
+  contentJson Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Subscription {
+  id                String             @id @default(cuid())
+  userId            String             @unique
+  stripePriceId     String
+  stripeSubscriptionId String?         @unique
+  status            SubscriptionStatus @default(INACTIVE)
+  currentPeriodEnd  DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UsageEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  feature   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, feature, createdAt])
+}
