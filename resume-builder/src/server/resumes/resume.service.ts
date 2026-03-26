@@ -14,6 +14,7 @@ export async function listResumes(userId: string) {
     select: {
       id: true,
       title: true,
+      slug: true,
       summary: true,
       createdAt: true,
       updatedAt: true,
@@ -38,6 +39,60 @@ export async function createResume(userId: string, input: CreateResumeInput) {
       updatedAt: true,
     },
   });
+}
+
+export async function duplicateResume(userId: string, resumeId: string) {
+  const source = await prisma.resume.findFirst({
+    where: {
+      id: resumeId,
+      userId,
+    },
+    select: {
+      title: true,
+      summary: true,
+      contentJson: true,
+      slug: true,
+    },
+  });
+
+  if (!source) {
+    throw new AppError("Resume not found", 404, "RESUME_NOT_FOUND");
+  }
+
+  const duplicateTitle = source.title.endsWith("(Copy)")
+    ? source.title
+    : `${source.title} (Copy)`;
+
+  return prisma.resume.create({
+    data: {
+      userId,
+      title: duplicateTitle,
+      summary: source.summary,
+      contentJson: source.contentJson,
+      slug: null,
+    },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
+export async function deleteResume(userId: string, resumeId: string) {
+  const result = await prisma.resume.deleteMany({
+    where: {
+      id: resumeId,
+      userId,
+    },
+  });
+
+  if (result.count === 0) {
+    throw new AppError("Resume not found", 404, "RESUME_NOT_FOUND");
+  }
 }
 
 async function assertGenerationAllowance(userId: string) {
