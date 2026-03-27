@@ -59,8 +59,21 @@ model User {
   subscription     Subscription?
   payments         Payment[]
   aiGenerations    AIGeneration[]
+  passwordResetTokens PasswordResetToken[]
 
   @@index([createdAt])
+}
+
+model PasswordResetToken {
+  id          String   @id @default(cuid())
+  userId      String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
 }
 
 model Resume {

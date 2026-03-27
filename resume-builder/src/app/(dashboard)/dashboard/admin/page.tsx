@@ -1,7 +1,10 @@
 import { ModulePlaceholder } from "@/components/layout/module-placeholder";
 import { PageContainer } from "@/components/layout/page-container";
+import { requireAdmin } from "@/server/auth/session.service";
 
-export default function AdminModulePage() {
+export default async function AdminModulePage() {
+  await requireAdmin({ redirectTo: "/dashboard" });
+
   return (
     <PageContainer
       title="Admin"

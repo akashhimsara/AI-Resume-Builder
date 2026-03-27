@@ -9,6 +9,11 @@ export default function SignInPage() {
 
       <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <SignInForm />
+        <p className="mt-4 text-right text-sm text-slate-600">
+          <Link href="/forgot-password" className="font-medium text-blue-700">
+            Forgot password?
+          </Link>
+        </p>
       </div>
 
       <p className="mt-4 text-sm text-slate-600">

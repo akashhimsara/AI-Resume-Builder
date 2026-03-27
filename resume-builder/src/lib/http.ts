@@ -16,7 +16,12 @@ export function handleRouteError(error: unknown) {
   }
 
   if (error instanceof ZodError) {
-    return fail("Validation failed", 422, "VALIDATION_ERROR");
+    const firstIssue = error.issues[0];
+    const issuePath = firstIssue?.path?.join(".");
+    const message = issuePath
+      ? `${issuePath}: ${firstIssue.message}`
+      : (firstIssue?.message ?? "Validation failed");
+    return fail(message, 422, "VALIDATION_ERROR");
   }
 
   console.error(error);

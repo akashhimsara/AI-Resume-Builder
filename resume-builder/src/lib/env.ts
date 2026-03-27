@@ -30,6 +30,19 @@ const stripeEnvSchema = z.object({
   STRIPE_PRICE_ID: z.string().min(1),
 });
 
+const emailEnvSchema = z.object({
+  SMTP_HOST: z.string().min(1),
+  SMTP_PORT: z.coerce.number().int().positive(),
+  SMTP_USER: z.string().min(1),
+  SMTP_PASS: z.string().min(1),
+  SMTP_SECURE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  EMAIL_FROM: z.string().email(),
+  EMAIL_FROM_NAME: z.string().trim().min(1).default("AI Resume Builder"),
+});
+
 export const env = parsedCore.data;
 
 export function getOpenAIEnv() {
@@ -56,6 +69,25 @@ export function getStripeEnv() {
   if (!parsed.success) {
     console.error("Invalid Stripe environment variables", parsed.error.flatten().fieldErrors);
     throw new Error("Stripe environment validation failed");
+  }
+
+  return parsed.data;
+}
+
+export function getEmailEnv() {
+  const parsed = emailEnvSchema.safeParse({
+    SMTP_HOST: process.env.SMTP_HOST,
+    SMTP_PORT: process.env.SMTP_PORT,
+    SMTP_USER: process.env.SMTP_USER,
+    SMTP_PASS: process.env.SMTP_PASS,
+    SMTP_SECURE: process.env.SMTP_SECURE,
+    EMAIL_FROM: process.env.EMAIL_FROM,
+    EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME,
+  });
+
+  if (!parsed.success) {
+    console.error("Invalid email environment variables", parsed.error.flatten().fieldErrors);
+    throw new Error("Email environment validation failed");
   }
 
   return parsed.data;

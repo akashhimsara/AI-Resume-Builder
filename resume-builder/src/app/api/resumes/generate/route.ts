@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
 import { handleRouteError, ok } from "@/lib/http";
-import { requireUserFromRequest } from "@/server/auth/session.service";
+import { requireUser } from "@/server/auth/session.service";
 import { generateResumeSchema } from "@/server/resumes/resume.schemas";
 import { generateAndCreateResume } from "@/server/resumes/resume.service";
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireUserFromRequest(request);
+    const user = await requireUser({ request });
     const json = await request.json();
     const input = generateResumeSchema.parse(json);
 
