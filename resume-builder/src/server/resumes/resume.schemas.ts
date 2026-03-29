@@ -16,6 +16,83 @@ export const personalInfoSchema = z.object({
 
 export type PersonalInfo = z.infer<typeof personalInfoSchema>;
 
+// ──────────────────────────────────────────────────────────────────────
+// WORK EXPERIENCE SCHEMA
+// ──────────────────────────────────────────────────────────────────────
+export const workExperienceSchema = z.object({
+  id: z.string().optional(),
+  company: z.string().trim().max(200),
+  role: z.string().trim().max(200),
+  location: z.string().trim().max(200).optional(),
+  startDate: z.string().date(),
+  endDate: z.string().date().optional().nullable(),
+  isCurrent: z.boolean().default(false),
+  description: z.string().trim().max(4000).optional(),
+  achievements: z.array(z.string().trim().max(500)).default([]),
+});
+
+export type WorkExperienceInput = z.infer<typeof workExperienceSchema>;
+
+// ──────────────────────────────────────────────────────────────────────
+// EDUCATION SCHEMA
+// ──────────────────────────────────────────────────────────────────────
+export const educationSchema = z.object({
+  id: z.string().optional(),
+  institution: z.string().trim().max(200),
+  degree: z.string().trim().max(200),
+  fieldOfStudy: z.string().trim().max(200).optional(),
+  location: z.string().trim().max(200).optional(),
+  startDate: z.string().date().optional(),
+  endDate: z.string().date().optional(),
+  grade: z.string().trim().max(50).optional(),
+  description: z.string().trim().max(4000).optional(),
+});
+
+export type EducationInput = z.infer<typeof educationSchema>;
+
+// ──────────────────────────────────────────────────────────────────────
+// SKILLS SCHEMA
+// ──────────────────────────────────────────────────────────────────────
+export const skillSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().trim().max(100),
+  proficiency: z.enum(["Beginner", "Intermediate", "Advanced", "Expert"]).optional(),
+});
+
+export type SkillInput = z.infer<typeof skillSchema>;
+
+// ──────────────────────────────────────────────────────────────────────
+// PROJECTS SCHEMA
+// ──────────────────────────────────────────────────────────────────────
+export const projectSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().trim().max(200),
+  description: z.string().trim().max(4000).optional(),
+  technologies: z.string().trim().max(500).optional(),
+  url: optionalUrl,
+  startDate: z.string().date().optional(),
+  endDate: z.string().date().optional(),
+});
+
+export type ProjectInput = z.infer<typeof projectSchema>;
+
+// ──────────────────────────────────────────────────────────────────────
+// CERTIFICATIONS SCHEMA
+// ──────────────────────────────────────────────────────────────────────
+export const certificationSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().trim().max(200),
+  issuer: z.string().trim().max(200).optional(),
+  issueDate: z.string().date().optional(),
+  expiryDate: z.string().date().optional(),
+  url: optionalUrl,
+});
+
+export type CertificationInput = z.infer<typeof certificationSchema>;
+
+// ──────────────────────────────────────────────────────────────────────
+// TEMPLATE & MAIN SCHEMAS
+// ──────────────────────────────────────────────────────────────────────
 export const resumeTemplateValues = ["modern-clean", "classic-pro", "bold-edge"] as const;
 export const resumeTemplateSchema = z.enum(resumeTemplateValues);
 
@@ -38,6 +115,13 @@ export const updateResumeSchema = z
     professionalSummary: z.string().trim().min(10).max(2000).nullable().optional(),
     contentJson: z.unknown().nullable().optional(),
     notes: z.string().trim().max(4000).nullable().optional(),
+    // New fields for autosave
+    personalInfo: personalInfoSchema.optional(),
+    workExperiences: z.array(workExperienceSchema).optional(),
+    educations: z.array(educationSchema).optional(),
+    skills: z.array(skillSchema).optional(),
+    projects: z.array(projectSchema).optional(),
+    certifications: z.array(certificationSchema).optional(),
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
     message: "At least one field is required",

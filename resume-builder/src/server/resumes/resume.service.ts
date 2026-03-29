@@ -176,7 +176,13 @@ export async function updateResume(userId: string, resumeId: string, input: Upda
     input.headline !== undefined ||
     input.professionalSummary !== undefined ||
     input.contentJson !== undefined ||
-    input.notes !== undefined;
+    input.notes !== undefined ||
+    input.personalInfo !== undefined ||
+    input.workExperiences !== undefined ||
+    input.educations !== undefined ||
+    input.skills !== undefined ||
+    input.projects !== undefined ||
+    input.certifications !== undefined;
 
   await prisma.$transaction(async (tx) => {
     if (hasResumeUpdate) {
@@ -199,9 +205,12 @@ export async function updateResume(userId: string, resumeId: string, input: Upda
         },
       });
 
-      if (latestVersion) {
+      const versionId = latestVersion?.id;
+
+      if (latestVersion && versionId) {
+        // Update basic fields
         await tx.resumeVersion.update({
-          where: { id: latestVersion.id },
+          where: { id: versionId },
           data: {
             headline: mapOptionalString(input.headline),
             professionalSummary: mapOptionalString(input.professionalSummary),
@@ -209,6 +218,137 @@ export async function updateResume(userId: string, resumeId: string, input: Upda
             notes: mapOptionalString(input.notes),
           },
         });
+
+        // Update nested entities if provided
+        if (input.workExperiences !== undefined) {
+          // Delete old entries
+          await tx.workExperience.deleteMany({
+            where: { resumeVersionId: versionId },
+          });
+
+          // Create new entries
+          if (input.workExperiences.length > 0) {
+            await tx.workExperience.createMany({
+              data: input.workExperiences.map((exp, idx) => ({
+                resumeVersionId: versionId,
+                company: exp.company,
+                role: exp.role,
+                location: exp.location ?? null,
+                startDate: new Date(exp.startDate),
+                endDate: exp.endDate ? new Date(exp.endDate) : null,
+                isCurrent: exp.isCurrent,
+                description: exp.description ?? null,
+                achievements: exp.achievements || [],
+                sortOrder: idx,
+              })),
+            });
+          }
+        }
+
+        if (input.educations !== undefined) {
+          await tx.education.deleteMany({
+            where: { resumeVersionId: versionId },
+          });
+
+          if (input.educations.length > 0) {
+            await tx.education.createMany({
+              data: input.educations.map((edu, idx) => ({
+                resumeVersionId: versionId,
+                institution: edu.institution,
+                degree: edu.degree,
+                fieldOfStudy: edu.fieldOfStudy ?? null,
+                location: edu.location ?? null,
+                startDate: edu.startDate ? new Date(edu.startDate) : null,
+                endDate: edu.endDate ? new Date(edu.endDate) : null,
+                grade: edu.grade ?? null,
+                description: edu.description ?? null,
+                sortOrder: idx,
+              })),
+            });
+          }
+        }
+
+        if (input.skills !== undefined) {
+          await tx.skill.deleteMany({
+            where: { resumeVersionId: versionId },
+          });
+
+          if (input.skills.length > 0) {
+            await tx.skill.createMany({
+              data: input.skills.map((skill, idx) => ({
+                resumeVersionId: versionId,
+                name: skill.name,
+                proficiency: null,
+                sortOrder: idx,
+              })),
+            });
+          }
+        }
+
+        if (input.projects !== undefined) {
+          await tx.project.deleteMany({
+            where: { resumeVersionId: versionId },
+          });
+
+          if (input.projects.length > 0) {
+            await tx.project.createMany({
+              data: input.projects.map((proj, idx) => ({
+                resumeVersionId: versionId,
+                title: proj.name,
+                role: null,
+                description: proj.description ?? null,
+                technologies: proj.technologies ? proj.technologies.split(",").map(t => t.trim()) : [],
+                projectUrl: proj.url ?? null,
+                repositoryUrl: null,
+                startDate: proj.startDate ? new Date(proj.startDate) : null,
+                endDate: proj.endDate ? new Date(proj.endDate) : null,
+                sortOrder: idx,
+              })),
+            });
+          }
+        }
+
+        if (input.certifications !== undefined) {
+          await tx.certification.deleteMany({
+            where: { resumeVersionId: versionId },
+          });
+
+          if (input.certifications.length > 0) {
+            await tx.certification.createMany({
+              data: input.certifications.map((cert, idx) => ({
+                resumeVersionId: versionId,
+                name: cert.name,
+                issuer: cert.issuer ?? "",
+                credentialId: null,
+                credentialUrl: cert.url ?? null,
+                issueDate: cert.issueDate ? new Date(cert.issueDate) : null,
+                expirationDate: cert.expiryDate ? new Date(cert.expiryDate) : null,
+                doesNotExpire: false,
+                sortOrder: idx,
+              })),
+            });
+          }
+        }
+
+        // Store personalInfo in contentJson
+        if (input.personalInfo !== undefined) {
+          const currentContent = (latestVersion ? await tx.resumeVersion.findUnique({
+            where: { id: versionId },
+            select: { contentJson: true },
+          }) : null) || { contentJson: {} };
+
+          const newContent = {
+            ...(typeof currentContent?.contentJson === "object" ? (currentContent.contentJson as object) : {}),
+            personalInfo: input.personalInfo,
+          };
+
+          await tx.resumeVersion.update({
+            where: { id: versionId },
+            data: {
+              contentJson: toJsonInput(newContent),
+            },
+          });
+        }
       } else {
         await tx.resumeVersion.create({
           data: {
