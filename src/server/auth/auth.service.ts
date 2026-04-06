@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { createHash, randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
-import { env } from "@/lib/env";
+import { getAppUrl, env } from "@/lib/env";
 import { sendResetPasswordEmail } from "@/lib/mailer";
 import type {
   ForgotPasswordInput,
@@ -153,7 +153,7 @@ export async function requestPasswordReset(input: ForgotPasswordInput): Promise<
     },
   });
 
-  const resetUrl = `${env.NEXT_PUBLIC_APP_URL}/reset-password?token=${encodeURIComponent(rawToken)}`;
+  const resetUrl = `${getAppUrl()}/reset-password?token=${encodeURIComponent(rawToken)}`;
   try {
     await sendResetPasswordEmail({
       to: user.email,
