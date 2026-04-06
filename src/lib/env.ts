@@ -4,7 +4,10 @@ const coreEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().min(1),
   AUTH_JWT_SECRET: z.string().min(32),
-  NEXT_PUBLIC_APP_URL: z.url(),
+  NEXT_PUBLIC_APP_URL: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().url().default("http://localhost:3000"),
+  ),
 });
 
 const parsedCore = coreEnvSchema.safeParse({
