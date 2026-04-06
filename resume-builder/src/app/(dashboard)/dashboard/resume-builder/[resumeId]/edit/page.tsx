@@ -5,6 +5,7 @@ import { getResumeById } from "@/server/resumes/resume.service";
 import { notFound } from "next/navigation";
 import type { PersonalInfo } from "@/server/resumes/resume.schemas";
 import { AppError } from "@/lib/errors";
+import type { EditorInitialData } from "@/components/resume-editor/editor-client";
 
 type EditResumePageProps = {
   params: Promise<{ resumeId: string }>;
@@ -31,11 +32,78 @@ export default async function EditResumePage({ params }: EditResumePageProps) {
     throw error;
   }
 
-  // Extract personal info from contentJson
-  const contentJson = resume.versions?.[0]?.contentJson as Record<string, any> | undefined;
-  const personalInfo = (contentJson?.personalInfo ?? {}) as PersonalInfo;
-  const headline = resume.versions?.[0]?.headline ?? undefined;
-  const summary = resume.versions?.[0]?.professionalSummary ?? undefined;
+  const latestVersion = resume.versions?.[0];
+  const contentJson = latestVersion?.contentJson as Record<string, unknown> | undefined;
+
+  const personalInfo = {
+    fullName: "",
+    email: user.email,
+    phone: "",
+    location: "",
+    linkedIn: "",
+    github: "",
+    portfolio: "",
+    ...(contentJson?.personalInfo as PersonalInfo | undefined),
+  };
+
+  const initialData: EditorInitialData = {
+    personalInfo,
+    headline: latestVersion?.headline ?? "",
+    summary: latestVersion?.professionalSummary ?? "",
+    workExperiences: (latestVersion?.workExperiences ?? []).map((exp) => ({
+      id: exp.id,
+      company: exp.company ?? "",
+      role: exp.role ?? "",
+      location: exp.location ?? "",
+      startDate: exp.startDate ? exp.startDate.toISOString().slice(0, 10) : "",
+      endDate: exp.endDate ? exp.endDate.toISOString().slice(0, 10) : "",
+      isCurrent: exp.isCurrent,
+      description: exp.description ?? "",
+      achievements: exp.achievements ?? [],
+    })),
+    educations: (latestVersion?.educations ?? []).map((edu) => ({
+      id: edu.id,
+      institution: edu.institution ?? "",
+      degree: edu.degree ?? "",
+      fieldOfStudy: edu.fieldOfStudy ?? "",
+      location: edu.location ?? "",
+      startDate: edu.startDate ? edu.startDate.toISOString().slice(0, 10) : "",
+      endDate: edu.endDate ? edu.endDate.toISOString().slice(0, 10) : "",
+      grade: edu.grade ?? "",
+      description: edu.description ?? "",
+    })),
+    skills: (latestVersion?.skills ?? []).map((skill) => ({
+      id: skill.id,
+      name: skill.name ?? "",
+      proficiency:
+        skill.proficiency === 1
+          ? "Beginner"
+          : skill.proficiency === 2
+            ? "Intermediate"
+            : skill.proficiency === 3
+              ? "Advanced"
+              : skill.proficiency === 4
+                ? "Expert"
+                : undefined,
+    })),
+    projects: (latestVersion?.projects ?? []).map((project) => ({
+      id: project.id,
+      name: project.title ?? "",
+      description: project.description ?? "",
+      technologies: (project.technologies ?? []).join(", "),
+      url: project.projectUrl ?? "",
+      startDate: project.startDate ? project.startDate.toISOString().slice(0, 10) : "",
+      endDate: project.endDate ? project.endDate.toISOString().slice(0, 10) : "",
+    })),
+    certifications: (latestVersion?.certifications ?? []).map((cert) => ({
+      id: cert.id,
+      name: cert.name ?? "",
+      issuer: cert.issuer ?? "",
+      issueDate: cert.issueDate ? cert.issueDate.toISOString().slice(0, 10) : "",
+      expiryDate: cert.expirationDate ? cert.expirationDate.toISOString().slice(0, 10) : "",
+      url: cert.credentialUrl ?? "",
+    })),
+  };
 
   return (
     <PageContainer
@@ -44,9 +112,7 @@ export default async function EditResumePage({ params }: EditResumePageProps) {
     >
       <EditorClient
         resumeId={resumeId}
-        initialPersonalInfo={personalInfo}
-        headline={headline}
-        summary={summary}
+        initialData={initialData}
       />
     </PageContainer>
   );

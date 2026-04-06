@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireUserFromCookies } from "@/server/auth/session.service";
 import { getResumeById } from "@/server/resumes/resume.service";
-import { EditorClient } from "@/components/resume-editor/editor-client";
+import { EditorClient, type EditorInitialData } from "@/components/resume-editor/editor-client";
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/common/button";
 import Link from "next/link";
@@ -66,7 +66,7 @@ export default async function ResumeEditorPage({
   // ─────────────────────────────────────────────────────────────────────
   
   // Parse personal info from contentJson or use defaults
-  let personalInfo: any = {
+  let personalInfo = {
     fullName: "",
     email: user.email,
     phone: "",
@@ -77,14 +77,14 @@ export default async function ResumeEditorPage({
   };
 
   if (latestVersion.contentJson && typeof latestVersion.contentJson === "object") {
-    const contentData = latestVersion.contentJson as any;
+    const contentData = latestVersion.contentJson as Record<string, unknown>;
     if (contentData.personalInfo) {
-      personalInfo = { ...personalInfo, ...contentData.personalInfo };
+      personalInfo = { ...personalInfo, ...(contentData.personalInfo as Record<string, string>) };
     }
   }
 
   // Map database entities to component types
-  const workExperiences = (latestVersion.workExperiences || []).map((exp: any) => ({
+  const workExperiences = (latestVersion.workExperiences || []).map((exp) => ({
     id: exp.id,
     company: exp.company || "",
     role: exp.role || "",
@@ -98,7 +98,7 @@ export default async function ResumeEditorPage({
     achievements: exp.achievements || [],
   }));
 
-  const educations = (latestVersion.educations || []).map((edu: any) => ({
+  const educations = (latestVersion.educations || []).map((edu) => ({
     id: edu.id,
     institution: edu.institution || "",
     degree: edu.degree || "",
@@ -112,51 +112,64 @@ export default async function ResumeEditorPage({
     description: edu.description,
   }));
 
-  const skills = (latestVersion.skills || []).map((skill: any) => ({
+  const skills = (latestVersion.skills || []).map((skill) => ({
     id: skill.id,
     name: skill.name || "",
-    proficiency: skill.proficiency,
+    proficiency:
+      skill.proficiency === 1
+        ? "Beginner"
+        : skill.proficiency === 2
+          ? "Intermediate"
+          : skill.proficiency === 3
+            ? "Advanced"
+            : skill.proficiency === 4
+              ? "Expert"
+              : undefined,
   }));
 
-  const projects = (latestVersion.projects || []).map((proj: any) => ({
-    id: proj.id,
-    name: proj.name || "",
-    description: proj.description,
-    technologies: proj.technologies,
-    url: proj.url,
-    startDate: proj.startDate
-      ? new Date(proj.startDate).toISOString().split("T")[0]
+  const projects = (latestVersion.projects || []).map((project) => ({
+    id: project.id,
+    name: project.title || "",
+    description: project.description || "",
+    technologies: (project.technologies || []).join(", "),
+    url: project.projectUrl || "",
+    startDate: project.startDate
+      ? new Date(project.startDate).toISOString().split("T")[0]
       : undefined,
-    endDate: proj.endDate ? new Date(proj.endDate).toISOString().split("T")[0] : undefined,
+    endDate: project.endDate
+      ? new Date(project.endDate).toISOString().split("T")[0]
+      : undefined,
   }));
 
-  const certifications = (latestVersion.certifications || []).map((cert: any) => ({
+  const certifications = (latestVersion.certifications || []).map((cert) => ({
     id: cert.id,
     name: cert.name || "",
-    issuer: cert.issuer,
+    issuer: cert.issuer || "",
     issueDate: cert.issueDate
       ? new Date(cert.issueDate).toISOString().split("T")[0]
       : undefined,
-    expiryDate: cert.expiryDate
-      ? new Date(cert.expiryDate).toISOString().split("T")[0]
+    expiryDate: cert.expirationDate
+      ? new Date(cert.expirationDate).toISOString().split("T")[0]
       : undefined,
-    url: cert.url,
+    url: cert.credentialUrl || "",
   }));
+
+  const initialData: EditorInitialData = {
+    personalInfo,
+    headline: latestVersion.headline || "",
+    summary: latestVersion.professionalSummary || "",
+    workExperiences,
+    educations,
+    skills,
+    projects,
+    certifications,
+  };
 
   return (
     <PageContainer title={resume.title} description={`Last updated: ${new Date(latestVersion.updatedAt).toLocaleDateString()}`}>
       <EditorClient
         resumeId={resumeId}
-        initialData={{
-          personalInfo,
-          headline: latestVersion.headline || "",
-          summary: latestVersion.professionalSummary || "",
-          workExperiences,
-          educations,
-          skills,
-          projects,
-          certifications,
-        }}
+        initialData={initialData}
       />
     </PageContainer>
   );
