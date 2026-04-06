@@ -1,8 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/common/button";
-
 /**
  * =============================================================================
  * FORM SECTION COMPONENTS - The Building Blocks
@@ -25,10 +22,10 @@ interface SectionContainerProps {
 
 export function SectionContainer({ title, description, children }: SectionContainerProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6">
-      <h3 className="mb-1 text-lg font-semibold text-slate-900">{title}</h3>
+    <div className="rounded-2xl border border-slate-200 glass-panel p-6 shadow-sm">
+      <h3 className="mb-1 text-lg font-bold tracking-tight text-slate-900">{title}</h3>
       {description && <p className="mb-4 text-sm text-slate-500">{description}</p>}
-      <div className="space-y-4">{children}</div>
+      <div className="space-y-5">{children}</div>
     </div>
   );
 }
@@ -56,11 +53,11 @@ export function InputField({
   error,
 }: InputFieldProps) {
   const baseClasses =
-    "w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
-  const errorClasses = error ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "";
+    "w-full min-w-0 rounded-xl border border-slate-300 bg-white/60 px-4 py-2.5 text-sm transition-all focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 hover:border-slate-400";
+  const errorClasses = error ? "border-red-500 focus:border-red-500 focus:ring-red-100" : "";
 
   return (
-    <div>
+    <div className="min-w-0">
       <label className="block text-sm font-medium text-slate-700">
         {label}
         {required && <span className="text-red-500">*</span>}
@@ -102,9 +99,9 @@ export function CheckboxField({ label, checked, onChange }: CheckboxFieldProps) 
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer h-4 w-4"
       />
-      <label className="text-sm font-medium text-slate-700">{label}</label>
+      <label className="text-sm font-medium text-slate-700 cursor-pointer">{label}</label>
     </div>
   );
 }
@@ -121,15 +118,15 @@ interface ArrayItemProps {
 
 export function ArrayItem({ index, title, onRemove, children }: ArrayItemProps) {
   return (
-    <div className="relative rounded-lg border border-slate-200 bg-slate-50 p-4">
+    <div className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-indigo-100 hover:shadow-md">
       {/* Header with title and delete button */}
-      <div className="mb-4 flex items-center justify-between">
-        <h4 className="font-medium text-slate-900">
+      <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-3">
+        <h4 className="font-semibold text-slate-800">
           {title || `Entry ${index + 1}`}
         </h4>
         <button
           onClick={onRemove}
-          className="rounded text-slate-400 hover:bg-red-50 hover:text-red-600 p-2"
+          className="rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 p-2 transition-colors"
           aria-label="Remove entry"
         >
           ✕
@@ -150,7 +147,6 @@ interface ArraySectionProps<T> {
   description?: string;
   items: T[];
   onAdd: () => void;
-  onRemove: (index: number) => void;
   renderItem: (item: T, index: number) => React.ReactNode;
   canAdd?: boolean;
   minItems?: number;
@@ -162,7 +158,6 @@ export function ArraySection<T>({
   description,
   items,
   onAdd,
-  onRemove,
   renderItem,
   canAdd = true,
   minItems = 0,
@@ -181,7 +176,9 @@ export function ArraySection<T>({
           </div>
         ) : (
           items.map((item, index) => (
-            <div key={index}>{renderItem(item, index)}</div>
+            <div key={index} data-can-remove={canRemove ? "true" : "false"}>
+              {renderItem(item, index)}
+            </div>
           ))
         )}
       </div>
@@ -190,7 +187,7 @@ export function ArraySection<T>({
       {canAdd && !isFull && (
         <button
           onClick={onAdd}
-          className="mt-4 flex items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+          className="mt-5 flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 bg-indigo-50/50 px-5 py-2.5 text-sm font-semibold text-indigo-700 transition-all hover:bg-indigo-100 hover:border-indigo-200 active:scale-[0.98]"
         >
           +
           {title.slice(0, -1)} {/* Remove the 's' from plural */}
@@ -209,6 +206,6 @@ interface RowProps {
 }
 
 export function Row({ children, columns = 2 }: RowProps) {
-  const colClass = columns === 3 ? "grid-cols-3" : "grid-cols-2";
+  const colClass = columns === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2";
   return <div className={`grid gap-3 ${colClass}`}>{children}</div>;
 }

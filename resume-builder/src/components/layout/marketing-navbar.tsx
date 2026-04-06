@@ -9,6 +9,24 @@ export function MarketingNavbar() {
         </Link>
         <nav className="flex items-center gap-2">
           <Link
+            href="/features"
+            className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
+            Features
+          </Link>
+          <Link
+            href="/pricing"
+            className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
+            Pricing
+          </Link>
+          <Link
+            href="/about"
+            className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
+            About
+          </Link>
+          <Link
             href="/sign-in"
             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
           >

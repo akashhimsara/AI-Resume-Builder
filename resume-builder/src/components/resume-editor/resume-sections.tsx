@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import {
   SectionContainer,
   InputField,
@@ -9,6 +9,8 @@ import {
   ArrayItem,
   Row,
 } from "@/components/resume-editor/form-sections";
+import { AISummaryGenerator } from "./ai-summary-generator";
+import { AIBulletImprover } from "./ai-bullet-improver";
 
 /**
  * =============================================================================
@@ -29,6 +31,7 @@ export interface PersonalInfoData {
   linkedIn?: string;
   github?: string;
   portfolio?: string;
+  photoUrl?: string;
 }
 
 interface PersonalInfoFormProps {
@@ -98,6 +101,33 @@ export function PersonalInfoForm({ data, onChange }: PersonalInfoFormProps) {
           placeholder="https://example.com"
         />
       </Row>
+      <div className="space-y-2">
+        <div className="text-sm font-medium text-slate-700">Upload Headshot</div>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = () => {
+              if (typeof reader.result === "string") {
+                handleChange("photoUrl", reader.result);
+              }
+            };
+            reader.readAsDataURL(file);
+          }}
+          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        />
+        {data.photoUrl && (
+          <img
+            src={data.photoUrl}
+            alt="Profile photo preview"
+            className="h-24 w-24 rounded-full object-cover border border-slate-300"
+          />
+        )}
+      </div>
     </SectionContainer>
   );
 }
@@ -108,6 +138,7 @@ export function PersonalInfoForm({ data, onChange }: PersonalInfoFormProps) {
 interface SummaryFormProps {
   headline?: string;
   professionalSummary?: string;
+  skillsContext?: string[];
   onHeadlineChange: (value: string) => void;
   onSummaryChange: (value: string) => void;
 }
@@ -115,6 +146,7 @@ interface SummaryFormProps {
 export function SummaryForm({
   headline,
   professionalSummary,
+  skillsContext,
   onHeadlineChange,
   onSummaryChange,
 }: SummaryFormProps) {
@@ -126,13 +158,23 @@ export function SummaryForm({
         value={headline}
         onChange={onHeadlineChange}
       />
-      <InputField
-        label="Professional Summary"
-        type="textarea"
-        placeholder="Write a brief summary of your career, skills, and achievements..."
-        value={professionalSummary}
-        onChange={onSummaryChange}
-      />
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-between items-end">
+          <div className="flex-1"></div> {/* Spacer to push button right */}
+          <AISummaryGenerator 
+            onSuccess={onSummaryChange} 
+            defaultHeadline={headline} 
+            defaultSkills={skillsContext} 
+          />
+        </div>
+        <InputField
+          label="Professional Summary"
+          type="textarea"
+          placeholder="Write a brief summary of your career, skills, and achievements..."
+          value={professionalSummary}
+          onChange={onSummaryChange}
+        />
+      </div>
     </SectionContainer>
   );
 }
@@ -171,7 +213,6 @@ export function WorkExperienceForm({
       description="Add your professional work history"
       items={experiences}
       onAdd={onAdd}
-      onRemove={onRemove}
       renderItem={(experience, index) => (
         <ArrayItem
           index={index}
@@ -252,6 +293,7 @@ export function WorkExperienceForm({
           />
 
           <AchievementsList
+            role={experience.role}
             achievements={experience.achievements}
             onUpdate={(achievements) =>
               onUpdate(index, { ...experience, achievements })
@@ -267,11 +309,12 @@ export function WorkExperienceForm({
 // ACHIEVEMENTS LIST - A sub-component for work experience
 // ─────────────────────────────────────────────────────────────────────────
 interface AchievementsListProps {
+  role: string;
   achievements: string[];
   onUpdate: (achievements: string[]) => void;
 }
 
-function AchievementsList({ achievements, onUpdate }: AchievementsListProps) {
+function AchievementsList({ role, achievements, onUpdate }: AchievementsListProps) {
   const handleAdd = () => {
     onUpdate([...achievements, ""]);
   };
@@ -318,6 +361,12 @@ function AchievementsList({ achievements, onUpdate }: AchievementsListProps) {
           + Add achievement
         </button>
       )}
+      
+      <AIBulletImprover 
+        role={role} 
+        bullets={achievements} 
+        onSuccess={onUpdate} 
+      />
     </div>
   );
 }
@@ -356,7 +405,6 @@ export function EducationForm({
       description="Add your educational background"
       items={educations}
       onAdd={onAdd}
-      onRemove={onRemove}
       renderItem={(education, index) => (
         <ArrayItem
           index={index}
@@ -468,7 +516,6 @@ export function SkillsForm({ skills, onAdd, onRemove, onUpdate }: SkillsFormProp
       description="List your professional skills"
       items={skills}
       onAdd={onAdd}
-      onRemove={onRemove}
       maxItems={30}
       renderItem={(skill, index) => (
         <ArrayItem index={index} title={skill.name || "Skill"} onRemove={() => onRemove(index)}>
@@ -489,7 +536,7 @@ export function SkillsForm({ skills, onAdd, onRemove, onUpdate }: SkillsFormProp
                 onChange={(e) =>
                   onUpdate(index, {
                     ...skill,
-                    proficiency: (e.target.value as any) || undefined,
+                    proficiency: (e.target.value as SkillEntry['proficiency']) || undefined,
                   })
                 }
                 className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -540,7 +587,6 @@ export function ProjectsForm({
       description="Showcase your portfolio projects"
       items={projects}
       onAdd={onAdd}
-      onRemove={onRemove}
       renderItem={(project, index) => (
         <ArrayItem
           index={index}
@@ -640,7 +686,6 @@ export function CertificationsForm({
       description="Add your professional certifications"
       items={certifications}
       onAdd={onAdd}
-      onRemove={onRemove}
       renderItem={(cert, index) => (
         <ArrayItem
           index={index}

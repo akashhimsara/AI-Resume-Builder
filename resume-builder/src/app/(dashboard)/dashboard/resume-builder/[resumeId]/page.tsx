@@ -5,6 +5,7 @@ import { EditorClient, type EditorInitialData } from "@/components/resume-editor
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/common/button";
 import Link from "next/link";
+import type { ResumeTemplate } from "@/server/resumes/resume.schemas";
 
 /**
  * =============================================================================
@@ -19,12 +20,33 @@ import Link from "next/link";
  */
 
 type ResumeEditorPageProps = {
-  params: { resumeId: string };
+  params: Promise<{ resumeId: string }>;
 };
 
+function normalizeTemplate(value: unknown): ResumeTemplate {
+  if (value === "modern" || value === "professional" || value === "minimal") {
+    return value;
+  }
+
+  if (value === "modern-clean") {
+    return "modern";
+  }
+
+  if (value === "classic-pro") {
+    return "professional";
+  }
+
+  if (value === "bold-edge") {
+    return "minimal";
+  }
+
+  return "professional";
+}
+
 export default async function ResumeEditorPage({
-  params: { resumeId },
+  params,
 }: ResumeEditorPageProps) {
+  const { resumeId } = await params;
   // ─────────────────────────────────────────────────────────────────────
   // AUTHENTICATION
   // ─────────────────────────────────────────────────────────────────────
@@ -38,8 +60,14 @@ export default async function ResumeEditorPage({
   // ─────────────────────────────────────────────────────────────────────
   // FETCH RESUME DATA
   // ─────────────────────────────────────────────────────────────────────
-  
-  const resume = await getResumeById(user.id, resumeId);
+  let resume = null;
+  try {
+    resume = await getResumeById(user.id, resumeId);
+  } catch (error: any) {
+    if (error?.code !== "RESUME_NOT_FOUND") {
+      throw error;
+    }
+  }
 
   if (!resume) {
     redirect("/dashboard/resume-builder");
@@ -75,9 +103,11 @@ export default async function ResumeEditorPage({
     github: "",
     portfolio: "",
   };
+  let selectedTemplate: ResumeTemplate = "professional";
 
   if (latestVersion.contentJson && typeof latestVersion.contentJson === "object") {
     const contentData = latestVersion.contentJson as Record<string, unknown>;
+    selectedTemplate = normalizeTemplate(contentData.template ?? contentData.theme);
     if (contentData.personalInfo) {
       personalInfo = { ...personalInfo, ...(contentData.personalInfo as Record<string, string>) };
     }
@@ -88,13 +118,13 @@ export default async function ResumeEditorPage({
     id: exp.id,
     company: exp.company || "",
     role: exp.role || "",
-    location: exp.location,
+    location: exp.location || "",
     startDate: exp.startDate
       ? new Date(exp.startDate).toISOString().split("T")[0]
       : "",
     endDate: exp.endDate ? new Date(exp.endDate).toISOString().split("T")[0] : undefined,
     isCurrent: exp.isCurrent || false,
-    description: exp.description,
+    description: exp.description || "",
     achievements: exp.achievements || [],
   }));
 
@@ -102,21 +132,20 @@ export default async function ResumeEditorPage({
     id: edu.id,
     institution: edu.institution || "",
     degree: edu.degree || "",
-    fieldOfStudy: edu.fieldOfStudy,
-    location: edu.location,
+    fieldOfStudy: edu.fieldOfStudy || "",
+    location: edu.location || "",
     startDate: edu.startDate
       ? new Date(edu.startDate).toISOString().split("T")[0]
       : undefined,
     endDate: edu.endDate ? new Date(edu.endDate).toISOString().split("T")[0] : undefined,
-    grade: edu.grade,
-    description: edu.description,
+    grade: edu.grade || "",
+    description: edu.description || "",
   }));
 
   const skills = (latestVersion.skills || []).map((skill) => ({
     id: skill.id,
     name: skill.name || "",
-    proficiency:
-      skill.proficiency === 1
+    proficiency: (skill.proficiency === 1
         ? "Beginner"
         : skill.proficiency === 2
           ? "Intermediate"
@@ -124,7 +153,7 @@ export default async function ResumeEditorPage({
             ? "Advanced"
             : skill.proficiency === 4
               ? "Expert"
-              : undefined,
+              : undefined) as "Beginner" | "Intermediate" | "Advanced" | "Expert" | undefined,
   }));
 
   const projects = (latestVersion.projects || []).map((project) => ({
@@ -155,6 +184,7 @@ export default async function ResumeEditorPage({
   }));
 
   const initialData: EditorInitialData = {
+    template: selectedTemplate,
     personalInfo,
     headline: latestVersion.headline || "",
     summary: latestVersion.professionalSummary || "",

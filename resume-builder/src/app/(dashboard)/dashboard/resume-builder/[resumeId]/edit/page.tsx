@@ -3,13 +3,33 @@ import { EditorClient } from "@/components/resume-editor/editor-client";
 import { requireUser } from "@/server/auth/session.service";
 import { getResumeById } from "@/server/resumes/resume.service";
 import { notFound } from "next/navigation";
-import type { PersonalInfo } from "@/server/resumes/resume.schemas";
+import type { PersonalInfo, ResumeTemplate } from "@/server/resumes/resume.schemas";
 import { AppError } from "@/lib/errors";
 import type { EditorInitialData } from "@/components/resume-editor/editor-client";
 
 type EditResumePageProps = {
   params: Promise<{ resumeId: string }>;
 };
+
+function normalizeTemplate(value: unknown): ResumeTemplate {
+  if (value === "modern" || value === "professional" || value === "minimal") {
+    return value;
+  }
+
+  if (value === "modern-clean") {
+    return "modern";
+  }
+
+  if (value === "classic-pro") {
+    return "professional";
+  }
+
+  if (value === "bold-edge") {
+    return "minimal";
+  }
+
+  return "professional";
+}
 
 export default async function EditResumePage({ params }: EditResumePageProps) {
   const { resumeId } = await params;
@@ -34,6 +54,7 @@ export default async function EditResumePage({ params }: EditResumePageProps) {
 
   const latestVersion = resume.versions?.[0];
   const contentJson = latestVersion?.contentJson as Record<string, unknown> | undefined;
+  const savedTemplate = normalizeTemplate(contentJson?.template ?? contentJson?.theme);
 
   const personalInfo = {
     fullName: "",
@@ -47,6 +68,7 @@ export default async function EditResumePage({ params }: EditResumePageProps) {
   };
 
   const initialData: EditorInitialData = {
+    template: savedTemplate,
     personalInfo,
     headline: latestVersion?.headline ?? "",
     summary: latestVersion?.professionalSummary ?? "",

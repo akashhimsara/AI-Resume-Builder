@@ -22,19 +22,19 @@ type ApiResponse = {
 
 const templateOptions = [
   {
-    value: "modern-clean",
-    label: "Modern Clean",
-    description: "Balanced layout with a professional, ATS-friendly style.",
+    value: "modern",
+    label: "Modern",
+    description: "Clean and contemporary styling with stronger visual hierarchy.",
   },
   {
-    value: "classic-pro",
-    label: "Classic Pro",
-    description: "Traditional structure with strong readability for corporate roles.",
+    value: "professional",
+    label: "Professional",
+    description: "Traditional, polished resume style designed for formal roles.",
   },
   {
-    value: "bold-edge",
-    label: "Bold Edge",
-    description: "High-contrast layout for design-forward or product-focused roles.",
+    value: "minimal",
+    label: "Minimal",
+    description: "Lightweight, distraction-free layout focused on content clarity.",
   },
 ] as const;
 
@@ -83,7 +83,7 @@ export function CreateResumeForm() {
         throw new Error("Resume was created, but no id was returned");
       }
 
-      router.push(`/dashboard/resume-builder/${resumeId}/edit`);
+      router.push(`/dashboard/resume-builder/${resumeId}`);
       router.refresh();
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create resume");

@@ -1,17 +1,18 @@
 import { z } from "zod";
 
 const optionalTrimmedString = z.string().trim().min(1).max(4000).optional();
-const optionalUrl = z.string().url().optional().or(z.literal(""));
+const optionalUrl = z.string().trim().max(500).optional().or(z.literal(""));
 
 // Personal Info validation - for contact details
 export const personalInfoSchema = z.object({
   fullName: z.string().trim().min(2).max(200).optional(),
-  email: z.string().email().optional().or(z.literal("")),
+  email: z.string().trim().max(320).optional().or(z.literal("")),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
   location: z.string().trim().max(200).optional().or(z.literal("")),
   linkedIn: optionalUrl,
   github: optionalUrl,
   portfolio: optionalUrl,
+  photoUrl: optionalUrl,
 });
 
 export type PersonalInfo = z.infer<typeof personalInfoSchema>;
@@ -93,7 +94,7 @@ export type CertificationInput = z.infer<typeof certificationSchema>;
 // ──────────────────────────────────────────────────────────────────────
 // TEMPLATE & MAIN SCHEMAS
 // ──────────────────────────────────────────────────────────────────────
-export const resumeTemplateValues = ["modern-clean", "classic-pro", "bold-edge"] as const;
+export const resumeTemplateValues = ["modern", "professional", "minimal"] as const;
 export const resumeTemplateSchema = z.enum(resumeTemplateValues);
 
 export const createResumeSchema = z.object({
@@ -115,6 +116,7 @@ export const updateResumeSchema = z
     professionalSummary: z.string().trim().min(10).max(2000).nullable().optional(),
     contentJson: z.unknown().nullable().optional(),
     notes: z.string().trim().max(4000).nullable().optional(),
+    template: resumeTemplateSchema.optional(),
     // New fields for autosave
     personalInfo: personalInfoSchema.optional(),
     workExperiences: z.array(workExperienceSchema).optional(),

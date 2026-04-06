@@ -28,33 +28,6 @@ export function PersonalInfoSection({
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   /**
-   * Handle field change - when user types in any input
-   * Just updates the local state (doesn't save yet)
-   */
-  const handleFieldChange = useCallback(
-    (field: keyof PersonalInfo, value: string) => {
-      setData((prev) => ({
-        ...prev,
-        [field]: value,
-      }));
-      setSaveError(null);
-
-      // Clear old timeout if user keeps typing
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
-      }
-
-      // Set new timeout - save after user stops typing for 1 second
-      const timeout = setTimeout(() => {
-        handleSave({ ...data, [field]: value });
-      }, 1000);
-
-      setSaveTimeout(timeout);
-    },
-    [data, saveTimeout]
-  );
-
-  /**
    * Save the data to database
    * Called automatically by the debounce timer
    */
@@ -89,6 +62,33 @@ export function PersonalInfoSection({
       }
     },
     [resumeId, onSave]
+  );
+
+  /**
+   * Handle field change - when user types in any input
+   * Just updates the local state (doesn't save yet)
+   */
+  const handleFieldChange = useCallback(
+    (field: keyof PersonalInfo, value: string) => {
+      setData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+      setSaveError(null);
+
+      // Clear old timeout if user keeps typing
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+
+      // Set new timeout - save after user stops typing for 1 second
+      const timeout = setTimeout(() => {
+        handleSave({ ...data, [field]: value });
+      }, 1000);
+
+      setSaveTimeout(timeout);
+    },
+    [data, saveTimeout, handleSave]
   );
 
   // Cleanup timeout on unmount

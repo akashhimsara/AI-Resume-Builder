@@ -8,7 +8,6 @@ import {
   type SessionPayload,
 } from "@/lib/auth-token";
 import { env } from "@/lib/env";
-
 export { AUTH_COOKIE_NAME, createSessionToken, verifySessionToken };
 export type { SessionPayload };
 

@@ -136,7 +136,7 @@ export async function createResume(userId: string, input: CreateResumeInput) {
   const initialContentJson =
     input.contentJson ??
     ({
-      theme: input.template ?? "modern-clean",
+      template: input.template ?? "professional",
       language: "en",
     } as const);
 
@@ -177,6 +177,7 @@ export async function updateResume(userId: string, resumeId: string, input: Upda
     input.professionalSummary !== undefined ||
     input.contentJson !== undefined ||
     input.notes !== undefined ||
+    input.template !== undefined ||
     input.personalInfo !== undefined ||
     input.workExperiences !== undefined ||
     input.educations !== undefined ||
@@ -214,7 +215,6 @@ export async function updateResume(userId: string, resumeId: string, input: Upda
           data: {
             headline: mapOptionalString(input.headline),
             professionalSummary: mapOptionalString(input.professionalSummary),
-            contentJson: toJsonInput(input.contentJson),
             notes: mapOptionalString(input.notes),
           },
         });
@@ -281,6 +281,7 @@ export async function updateResume(userId: string, resumeId: string, input: Upda
                 proficiency: null,
                 sortOrder: idx,
               })),
+              skipDuplicates: true,
             });
           }
         }
@@ -330,17 +331,37 @@ export async function updateResume(userId: string, resumeId: string, input: Upda
           }
         }
 
-        // Store personalInfo in contentJson
-        if (input.personalInfo !== undefined) {
-          const currentContent = (latestVersion ? await tx.resumeVersion.findUnique({
-            where: { id: versionId },
-            select: { contentJson: true },
-          }) : null) || { contentJson: {} };
+        if (
+          input.contentJson !== undefined ||
+          input.personalInfo !== undefined ||
+          input.template !== undefined
+        ) {
+          const currentContent =
+            (await tx.resumeVersion.findUnique({
+              where: { id: versionId },
+              select: { contentJson: true },
+            })) || { contentJson: {} };
 
-          const newContent = {
-            ...(typeof currentContent?.contentJson === "object" ? (currentContent.contentJson as object) : {}),
-            personalInfo: input.personalInfo,
+          const baseContent =
+            input.contentJson === undefined
+              ? typeof currentContent.contentJson === "object" && currentContent.contentJson !== null
+                ? (currentContent.contentJson as Record<string, unknown>)
+                : {}
+              : input.contentJson === null
+                ? {}
+                : (input.contentJson as Record<string, unknown>);
+
+          const newContent: Record<string, unknown> = {
+            ...baseContent,
           };
+
+          if (input.personalInfo !== undefined) {
+            newContent.personalInfo = input.personalInfo;
+          }
+
+          if (input.template !== undefined) {
+            newContent.template = input.template;
+          }
 
           await tx.resumeVersion.update({
             where: { id: versionId },
@@ -356,7 +377,12 @@ export async function updateResume(userId: string, resumeId: string, input: Upda
             versionNumber: 1,
             headline: input.headline ?? null,
             professionalSummary: input.professionalSummary ?? null,
-            contentJson: toJsonInput(input.contentJson),
+            contentJson: toJsonInput(
+              input.contentJson ?? {
+                template: input.template ?? "professional",
+                personalInfo: input.personalInfo ?? undefined,
+              }
+            ),
             notes: input.notes ?? null,
           },
         });

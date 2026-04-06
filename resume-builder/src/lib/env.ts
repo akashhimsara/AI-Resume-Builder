@@ -22,6 +22,7 @@ if (!parsedCore.success) {
 const openAIEnvSchema = z.object({
   OPENAI_API_KEY: z.string().min(1),
   OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
+  OPENAI_BASE_URL: z.string().url().optional(),
 });
 
 const stripeEnvSchema = z.object({
@@ -49,6 +50,7 @@ export function getOpenAIEnv() {
   const parsed = openAIEnvSchema.safeParse({
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     OPENAI_MODEL: process.env.OPENAI_MODEL,
+    OPENAI_BASE_URL: process.env.OPENAI_BASE_URL,
   });
 
   if (!parsed.success) {
@@ -88,6 +90,25 @@ export function getEmailEnv() {
   if (!parsed.success) {
     console.error("Invalid email environment variables", parsed.error.flatten().fieldErrors);
     throw new Error("Email environment validation failed");
+  }
+
+  return parsed.data;
+}
+
+const upstashEnvSchema = z.object({
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+});
+
+export function getUpstashEnv() {
+  const parsed = upstashEnvSchema.safeParse({
+    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+
+  if (!parsed.success) {
+    console.warn("Invalid Upstash environment variables - Rate limiting will default to in-memory mode.");
+    return { UPSTASH_REDIS_REST_URL: undefined, UPSTASH_REDIS_REST_TOKEN: undefined };
   }
 
   return parsed.data;

@@ -34,6 +34,7 @@ export type PublicUser = {
   fullName: string;
   role: "USER" | "ADMIN";
   sessionVersion: number;
+  stripeCustomerId?: string | null;
 };
 
 function mapUser(user: {
@@ -42,6 +43,7 @@ function mapUser(user: {
   fullName: string;
   role: "USER" | "ADMIN";
   sessionVersion: number;
+  stripeCustomerId?: string | null;
 }): PublicUser {
   return {
     id: user.id,
@@ -49,6 +51,7 @@ function mapUser(user: {
     fullName: user.fullName,
     role: user.role,
     sessionVersion: user.sessionVersion,
+    stripeCustomerId: user.stripeCustomerId ?? null,
   };
 }
 
@@ -73,6 +76,7 @@ export async function registerUser(input: RegisterInput): Promise<PublicUser> {
       fullName: true,
       role: true,
       sessionVersion: true,
+      stripeCustomerId: true,
     },
   });
 
@@ -93,14 +97,17 @@ export async function loginUser(input: LoginInput): Promise<PublicUser> {
   });
 
   if (!user) {
+    console.log("User not found for email:", input.email);
     throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
   }
 
   const isValid = await bcrypt.compare(input.password, user.passwordHash);
   if (!isValid) {
+    console.log("Password mismatch for user:", user.email);
     throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
   }
 
+  console.log("Login success for user:", user.email);
   return mapUser(user);
 }
 
@@ -113,6 +120,7 @@ export async function getUserById(userId: string): Promise<PublicUser | null> {
       fullName: true,
       role: true,
       sessionVersion: true,
+      stripeCustomerId: true,
     },
   });
 

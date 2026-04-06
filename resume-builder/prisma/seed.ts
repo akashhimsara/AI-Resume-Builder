@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient() as any;
+const prisma = new PrismaClient();
 
 const ADMIN_EMAIL = "admin@airesumebuilder.dev";
 const TEST_USER_EMAIL = "user@airesumebuilder.dev";
