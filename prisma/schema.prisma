@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum PlanType {
+  FREE
+  PRO
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum GenerationType {
+  RESUME_DRAFT
+  RESUME_REWRITE
+  BULLET_IMPROVEMENT
+  SUMMARY_GENERATION
+  COVER_LETTER
+}
+
+enum GenerationStatus {
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id               String          @id @default(cuid())
+  email            String          @unique
+  passwordHash     String
+  fullName         String
+  role             UserRole        @default(USER)
+  sessionVersion   Int             @default(1)
+  stripeCustomerId String?         @unique
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  resumes          Resume[]
+  subscription     Subscription?
+  payments         Payment[]
+  aiGenerations    AIGeneration[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@index([createdAt])
+}
+
+model PasswordResetToken {
+  id          String   @id @default(cuid())
+  userId      String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model Resume {
+  id          String          @id @default(cuid())
+  userId      String
+  title       String
+  slug        String?
+  isArchived  Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions    ResumeVersion[]
+  aiGenerations AIGeneration[]
+
+  @@index([userId, createdAt])
+  @@unique([userId, slug])
+}
+
+model ResumeVersion {
+  id               String           @id @default(cuid())
+  resumeId         String
+  versionNumber    Int
+  headline         String?
+  professionalSummary String?
+  contentJson      Json?
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  resume           Resume           @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  workExperiences  WorkExperience[]
+  educations       Education[]
+  skills           Skill[]
+  projects         Project[]
+  certifications   Certification[]
+  aiGenerations    AIGeneration[]
+
+  @@unique([resumeId, versionNumber])
+  @@index([resumeId, createdAt])
+}
+
+model WorkExperience {
+  id              String        @id @default(cuid())
+  resumeVersionId String
+  company         String
+  role            String
+  location        String?
+  employmentType  String?
+  startDate       DateTime
+  endDate         DateTime?
+  isCurrent       Boolean       @default(false)
+  description     String?
+  achievements    String[]
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  resumeVersion   ResumeVersion @relation(fields: [resumeVersionId], references: [id], onDelete: Cascade)
+
+  @@index([resumeVersionId, sortOrder])
+}
+
+model Education {
+  id              String        @id @default(cuid())
+  resumeVersionId String
+  institution     String
+  degree          String
+  fieldOfStudy    String?
+  location        String?
+  startDate       DateTime?
+  endDate         DateTime?
+  grade           String?
+  description     String?
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  resumeVersion   ResumeVersion @relation(fields: [resumeVersionId], references: [id], onDelete: Cascade)
+
+  @@index([resumeVersionId, sortOrder])
+}
+
+model Skill {
+  id              String        @id @default(cuid())
+  resumeVersionId String
+  name            String
+  category        String?
+  proficiency     Int?
+  yearsOfExperience Int?
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  resumeVersion   ResumeVersion @relation(fields: [resumeVersionId], references: [id], onDelete: Cascade)
+
+  @@index([resumeVersionId, sortOrder])
+  @@unique([resumeVersionId, name])
+}
+
+model Project {
+  id              String        @id @default(cuid())
+  resumeVersionId String
+  title           String
+  role            String?
+  description     String?
+  technologies    String[]
+  projectUrl      String?
+  repositoryUrl   String?
+  startDate       DateTime?
+  endDate         DateTime?
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  resumeVersion   ResumeVersion @relation(fields: [resumeVersionId], references: [id], onDelete: Cascade)
+
+  @@index([resumeVersionId, sortOrder])
+}
+
+model Certification {
+  id              String        @id @default(cuid())
+  resumeVersionId String
+  name            String
+  issuer          String
+  credentialId    String?
+  credentialUrl   String?
+  issueDate       DateTime?
+  expirationDate  DateTime?
+  doesNotExpire   Boolean       @default(false)
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  resumeVersion   ResumeVersion @relation(fields: [resumeVersionId], references: [id], onDelete: Cascade)
+
+  @@index([resumeVersionId, sortOrder])
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  userId                 String             @unique
+  plan                   PlanType           @default(FREE)
+  status                 SubscriptionStatus @default(TRIALING)
+  stripePriceId          String?
+  stripeSubscriptionId   String?            @unique
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
+  canceledAt             DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments               Payment[]
+
+  @@index([plan, status])
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  userId                String
+  subscriptionId        String?
+  amount                Int
+  currency              String        @default("usd")
+  status                PaymentStatus @default(PENDING)
+  provider              String        @default("stripe")
+  providerPaymentId     String?       @unique
+  providerInvoiceId     String?       @unique
+  paidAt                DateTime?
+  metadata              Json?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription          Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([subscriptionId, status])
+}
+
+model AIGeneration {
+  id              String           @id @default(cuid())
+  userId          String
+  resumeId        String?
+  resumeVersionId String?
+  generationType  GenerationType
+  status          GenerationStatus @default(SUCCESS)
+  model           String
+  prompt          String
+  response        String?
+  inputTokens     Int?
+  outputTokens    Int?
+  errorMessage    String?
+  durationMs      Int?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume          Resume?          @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+  resumeVersion   ResumeVersion?   @relation(fields: [resumeVersionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, generationType, createdAt])
+  @@index([resumeId, createdAt])
+  @@index([resumeVersionId, createdAt])
+}
