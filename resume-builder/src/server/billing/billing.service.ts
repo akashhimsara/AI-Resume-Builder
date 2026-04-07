@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { env } from "@/lib/env";
+import { getAppUrl } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
 
@@ -84,8 +84,8 @@ export async function createBillingCheckout(userId: string) {
           quantity: 1,
         },
       ],
-      success_url: `${env.NEXT_PUBLIC_APP_URL}/dashboard?billing=success`,
-      cancel_url: `${env.NEXT_PUBLIC_APP_URL}/dashboard?billing=canceled`,
+      success_url: `${getAppUrl()}/dashboard?billing=success`,
+      cancel_url: `${getAppUrl()}/dashboard?billing=canceled`,
       metadata: {
         userId: user.id,
       },
@@ -120,7 +120,7 @@ export async function createBillingPortal(userId: string) {
   try {
     portal = await stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,
-      return_url: `${env.NEXT_PUBLIC_APP_URL}/dashboard/billing`,
+      return_url: `${getAppUrl()}/dashboard/billing`,
     });
   } catch (error) {
     throw mapStripeError(error);

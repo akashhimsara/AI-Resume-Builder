@@ -4,10 +4,6 @@ const coreEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().min(1),
   AUTH_JWT_SECRET: z.string().min(32),
-  NEXT_PUBLIC_APP_URL: z.preprocess(
-    (value) => (value === "" ? undefined : value),
-    z.string().url().default("http://localhost:3000"),
-  ),
 });
 
 const parsedCore = coreEnvSchema.safeParse({
@@ -48,6 +44,20 @@ const emailEnvSchema = z.object({
 });
 
 export const env = parsedCore.data;
+
+export function getAppUrl() {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+
+  if (appUrl) {
+    return appUrl;
+  }
+
+  if (env.NODE_ENV === "production") {
+    console.warn("NEXT_PUBLIC_APP_URL is missing in production; falling back to http://localhost:3000");
+  }
+
+  return "http://localhost:3000";
+}
 
 export function getOpenAIEnv() {
   const parsed = openAIEnvSchema.safeParse({
