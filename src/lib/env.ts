@@ -2,13 +2,15 @@ import { z } from "zod";
 
 const coreEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  DATABASE_URL: z.string().min(1),
+  DATABASE_URL: z.string().url(),
+  DIRECT_URL: z.string().url(),
   AUTH_JWT_SECRET: z.string().min(32),
 });
 
 const parsedCore = coreEnvSchema.safeParse({
   NODE_ENV: process.env.NODE_ENV,
   DATABASE_URL: process.env.DATABASE_URL,
+  DIRECT_URL: process.env.DIRECT_URL,
   AUTH_JWT_SECRET: process.env.AUTH_JWT_SECRET,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
 });
@@ -16,6 +18,19 @@ const parsedCore = coreEnvSchema.safeParse({
 if (!parsedCore.success) {
   console.error("Invalid core environment variables", parsedCore.error.flatten().fieldErrors);
   throw new Error("Environment validation failed");
+}
+
+if (parsedCore.data.NODE_ENV === "production") {
+  const databaseUrl = new URL(parsedCore.data.DATABASE_URL);
+  const directUrl = new URL(parsedCore.data.DIRECT_URL);
+
+  if (databaseUrl.searchParams.get("sslmode") !== "require") {
+    throw new Error("DATABASE_URL must include sslmode=require in production");
+  }
+
+  if (directUrl.searchParams.get("sslmode") !== "require") {
+    throw new Error("DIRECT_URL must include sslmode=require in production");
+  }
 }
 
 const openAIEnvSchema = z.object({

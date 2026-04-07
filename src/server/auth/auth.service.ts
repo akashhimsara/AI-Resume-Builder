@@ -56,7 +56,7 @@ function mapUser(user: {
 }
 
 export async function registerUser(input: RegisterInput): Promise<PublicUser> {
-  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  const existing = await prisma.user.findFirst({ where: { email: input.email } });
 
   if (existing) {
     throw new AppError("Email already in use", 409, "EMAIL_ALREADY_EXISTS");
@@ -84,31 +84,50 @@ export async function registerUser(input: RegisterInput): Promise<PublicUser> {
 }
 
 export async function loginUser(input: LoginInput): Promise<PublicUser> {
-  const user = await prisma.user.findUnique({
-    where: { email: input.email },
-    select: {
-      id: true,
-      email: true,
-      fullName: true,
-      role: true,
-      sessionVersion: true,
-      passwordHash: true,
-    },
-  });
+  try {
+    console.info("Login lookup started", { email: input.email });
 
-  if (!user) {
-    console.log("User not found for email:", input.email);
-    throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
+    const user = await prisma.user.findFirst({
+      where: { email: input.email },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        sessionVersion: true,
+        passwordHash: true,
+      },
+    });
+
+    console.info("Login lookup finished", {
+      email: input.email,
+      found: Boolean(user),
+    });
+
+    if (!user) {
+      throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
+    }
+
+    console.info("Password comparison started", { email: user.email });
+    const isValid = await bcrypt.compare(input.password, user.passwordHash);
+    console.info("Password comparison finished", {
+      email: user.email,
+      isValid,
+    });
+
+    if (!isValid) {
+      throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
+    }
+
+    console.info("Login success", { email: user.email, userId: user.id });
+    return mapUser(user);
+  } catch (error) {
+    console.error("loginUser failed", {
+      email: input.email,
+      error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
+    });
+    throw error;
   }
-
-  const isValid = await bcrypt.compare(input.password, user.passwordHash);
-  if (!isValid) {
-    console.log("Password mismatch for user:", user.email);
-    throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
-  }
-
-  console.log("Login success for user:", user.email);
-  return mapUser(user);
 }
 
 export async function getUserById(userId: string): Promise<PublicUser | null> {
@@ -128,7 +147,7 @@ export async function getUserById(userId: string): Promise<PublicUser | null> {
 }
 
 export async function requestPasswordReset(input: ForgotPasswordInput): Promise<void> {
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.findFirst({
     where: { email: input.email },
     select: {
       id: true,
