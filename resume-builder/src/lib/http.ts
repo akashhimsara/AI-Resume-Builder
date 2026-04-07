@@ -32,6 +32,10 @@ export function handleRouteError(error: unknown) {
         return fail("A required database table is missing", 500, "DATABASE_SCHEMA_MISSING");
       }
 
+      if (code === "P2022") {
+        return fail("A required database column is missing", 500, "DATABASE_SCHEMA_MISSING");
+      }
+
       if (code === "P2025") {
         return fail("The requested record was not found", 404, "RECORD_NOT_FOUND");
       }
