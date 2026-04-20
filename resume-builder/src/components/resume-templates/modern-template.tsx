@@ -28,6 +28,7 @@ export function ModernResumeTemplate({ data }: { data: ResumePreviewData }) {
             {personalInfo?.phone && <div className="flex items-center gap-3 min-w-0"><span className="opacity-80 shrink-0"><IconPhone /></span> <span className="min-w-0 flex-1 truncate" title={personalInfo.phone}>{personalInfo.phone}</span></div>}
             {personalInfo?.location && <div className="flex items-center gap-3 min-w-0"><span className="opacity-80 shrink-0"><IconLocation /></span> <span className="min-w-0 flex-1 truncate" title={personalInfo.location}>{personalInfo.location}</span></div>}
             {personalInfo?.linkedIn && <div className="flex items-center gap-3 min-w-0"><span className="opacity-80 shrink-0"><IconLink /></span> <span className="min-w-0 flex-1 truncate" title={personalInfo.linkedIn.replace(/^https?:\/\/(www\.)?/, '')}>{personalInfo.linkedIn.replace(/^https?:\/\/(www\.)?/, '')}</span></div>}
+            {personalInfo?.github && <div className="flex items-center gap-3 min-w-0"><span className="opacity-80 shrink-0"><IconLink /></span> <span className="min-w-0 flex-1 truncate" title={personalInfo.github.replace(/^https?:\/\/(www\.)?/, '')}>{personalInfo.github.replace(/^https?:\/\/(www\.)?/, '')}</span></div>}
             {personalInfo?.portfolio && <div className="flex items-center gap-3 min-w-0"><span className="opacity-80 shrink-0"><IconLink /></span> <span className="min-w-0 flex-1 truncate" title={personalInfo.portfolio.replace(/^https?:\/\/(www\.)?/, '')}>{personalInfo.portfolio.replace(/^https?:\/\/(www\.)?/, '')}</span></div>}
           </div>
         </section>
@@ -84,6 +85,7 @@ export function ModernResumeTemplate({ data }: { data: ResumePreviewData }) {
                       <span className="text-slate-500 font-semibold tracking-wide uppercase text-[10px]">{formatRange(exp.startDate, exp.endDate, exp.isCurrent)}</span>
                     </div>
                   </div>
+                  {exp.description && <p className="text-[12px] leading-relaxed text-slate-700 mb-1.5">{exp.description}</p>}
                   {exp.achievements.length > 0 && (
                     <ul className="list-disc pl-4 space-y-1 text-[12px] leading-relaxed text-slate-700 mt-2">
                       {exp.achievements.map((ach, i) => <li key={i}>{ach}</li>)}
@@ -112,6 +114,7 @@ export function ModernResumeTemplate({ data }: { data: ResumePreviewData }) {
                     {edu.institution || "Institution"} {edu.location && <span className="text-slate-500 font-normal">| {edu.location}</span>}
                   </div>
                   {edu.grade && <div className="text-[11px] text-slate-600 mt-1">Grade: {edu.grade}</div>}
+                  {edu.description && <p className="text-[12px] leading-relaxed text-slate-700 mt-1">{edu.description}</p>}
                 </div>
               ))}
             </div>

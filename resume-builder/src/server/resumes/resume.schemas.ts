@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 const optionalTrimmedString = z.string().trim().min(1).max(4000).optional();
-const optionalUrl = z.string().trim().max(500).optional().or(z.literal(""));
+const optionalLink = z.string().trim().max(500).optional().or(z.literal(""));
+const optionalPhotoUrl = z.string().trim().max(2_000_000).optional().or(z.literal(""));
 
 // Personal Info validation - for contact details
 export const personalInfoSchema = z.object({
@@ -9,10 +10,10 @@ export const personalInfoSchema = z.object({
   email: z.string().trim().max(320).optional().or(z.literal("")),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
   location: z.string().trim().max(200).optional().or(z.literal("")),
-  linkedIn: optionalUrl,
-  github: optionalUrl,
-  portfolio: optionalUrl,
-  photoUrl: optionalUrl,
+  linkedIn: optionalLink,
+  github: optionalLink,
+  portfolio: optionalLink,
+  photoUrl: optionalPhotoUrl,
 });
 
 export type PersonalInfo = z.infer<typeof personalInfoSchema>;
@@ -70,7 +71,7 @@ export const projectSchema = z.object({
   name: z.string().trim().max(200),
   description: z.string().trim().max(4000).optional(),
   technologies: z.string().trim().max(500).optional(),
-  url: optionalUrl,
+  url: optionalLink,
   startDate: z.string().date().optional(),
   endDate: z.string().date().optional(),
 });
@@ -86,7 +87,7 @@ export const certificationSchema = z.object({
   issuer: z.string().trim().max(200).optional(),
   issueDate: z.string().date().optional(),
   expiryDate: z.string().date().optional(),
-  url: optionalUrl,
+  url: optionalLink,
 });
 
 export type CertificationInput = z.infer<typeof certificationSchema>;

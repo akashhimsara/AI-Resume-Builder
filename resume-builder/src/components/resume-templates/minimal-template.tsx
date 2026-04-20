@@ -24,6 +24,7 @@ export function MinimalResumeTemplate({ data }: { data: ResumePreviewData }) {
     personalInfo?.phone,
     personalInfo?.location,
     personalInfo?.linkedIn,
+    personalInfo?.github,
     personalInfo?.portfolio,
   ].filter((v): v is string => Boolean(v && v.trim().length > 0));
 
@@ -59,6 +60,7 @@ export function MinimalResumeTemplate({ data }: { data: ResumePreviewData }) {
                     <span className="text-[10px] text-slate-500 font-semibold tracking-wide uppercase shrink-0 ml-auto">{formatRange(exp.startDate, exp.endDate, exp.isCurrent)}</span>
                   </div>
                   <div className="italic text-slate-600 mb-1.5">{exp.role || "Role"} {exp.location && <span>— {exp.location}</span>}</div>
+                  {exp.description && <p className="text-[11px] leading-relaxed text-slate-700 mb-1.5">{exp.description}</p>}
                   
                   {exp.achievements.length > 0 && (
                     <ul className="list-disc pl-4 space-y-1 text-[11px] leading-relaxed text-slate-700">
@@ -82,6 +84,7 @@ export function MinimalResumeTemplate({ data }: { data: ResumePreviewData }) {
                   </div>
                   <div className="text-slate-800">{edu.degree || "Degree"}</div>
                   {edu.grade && <div className="text-slate-500 mt-0.5">Grade: {edu.grade}</div>}
+                  {edu.description && <p className="text-[11px] leading-relaxed text-slate-700 mt-1">{edu.description}</p>}
                 </div>
               ))}
             </div>

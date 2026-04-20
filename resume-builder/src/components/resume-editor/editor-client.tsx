@@ -43,6 +43,10 @@ const AUTO_SAVE_DELAY_MS = 1200;
 const A4_PREVIEW_WIDTH_PX = 794;
 const A4_PREVIEW_HEIGHT_PX = 1123;
 
+function normalizeOptionalText(value: string | undefined | null) {
+  return value?.trim() || undefined;
+}
+
 function todayAsDateInput() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -90,6 +94,7 @@ export function EditorClient({ resumeId, initialData }: EditorClientProps) {
         ...item,
         startDate: item.startDate || todayAsDateInput(),
         endDate: item.isCurrent ? null : item.endDate || null,
+        description: normalizeOptionalText(item.description),
         achievements: item.achievements
           .map((achievement) => achievement.trim())
           .filter((achievement) => achievement.length > 0),
@@ -99,6 +104,7 @@ export function EditorClient({ resumeId, initialData }: EditorClientProps) {
       .filter((item) => item.institution.trim().length > 0 || item.degree.trim().length > 0)
       .map((item) => ({
         ...item,
+        description: normalizeOptionalText(item.description),
         startDate: item.startDate || undefined,
         endDate: item.endDate || undefined,
       }));
@@ -121,8 +127,8 @@ export function EditorClient({ resumeId, initialData }: EditorClientProps) {
       .map((item) => ({
         ...item,
         name: item.name.trim(),
-        description: item.description?.trim() || undefined,
-        technologies: item.technologies?.trim() || undefined,
+        description: normalizeOptionalText(item.description),
+        technologies: normalizeOptionalText(item.technologies),
         startDate: item.startDate || undefined,
         endDate: item.endDate || undefined,
         url: item.url?.trim() || "",
@@ -133,7 +139,7 @@ export function EditorClient({ resumeId, initialData }: EditorClientProps) {
       .map((item) => ({
         ...item,
         name: item.name.trim(),
-        issuer: item.issuer?.trim() || undefined,
+        issuer: normalizeOptionalText(item.issuer),
         issueDate: item.issueDate || undefined,
         expiryDate: item.expiryDate || undefined,
         url: item.url?.trim() || "",
@@ -311,7 +317,7 @@ export function EditorClient({ resumeId, initialData }: EditorClientProps) {
         </div>
       </div>
 
-      <div className="space-y-6 lg:col-span-6 print:hidden">
+      <div className="space-y-6 lg:col-span-5 print:hidden">
         {/* Template Selector UI */}
         <div className="flex flex-col gap-4 rounded-2xl glass-panel p-5">
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -447,7 +453,7 @@ export function EditorClient({ resumeId, initialData }: EditorClientProps) {
         />
       </div>
 
-      <div className="min-w-0 lg:col-span-6 print:col-span-12 print:m-0 print:p-0">
+      <div className="min-w-0 lg:col-span-7 print:col-span-12 print:m-0 print:p-0">
         <div className="sticky top-6 print:static">
           {/* PDF Download Button and Preview */}
           <PDFDownloadableResume
@@ -467,7 +473,6 @@ export function EditorClient({ resumeId, initialData }: EditorClientProps) {
   );
 }
 
-// --- PDF Download Button Wrapper ---
 import { exportResumeToPDF } from "./export-pdf";
 
 interface PDFDownloadableResumeProps {
@@ -482,32 +487,40 @@ interface PDFDownloadableResumeProps {
   certifications: CertificationEntry[];
 }
 
-// (removed duplicate useState import)
-
-
-// (removed duplicate useEffect import)
+type ZoomMode = "actual" | "fitWidth" | "fitPage";
 
 function PDFDownloadableResume(props: PDFDownloadableResumeProps) {
-  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const previewViewportRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [zoomMode, setZoomMode] = useState<ZoomMode>("fitPage");
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   useEffect(() => {
-    if (!previewContainerRef.current) {
+    if (!previewViewportRef.current) {
       return;
     }
 
     const updateScale = () => {
-      const containerWidth = previewContainerRef.current?.clientWidth ?? A4_PREVIEW_WIDTH_PX;
-      const nextScale = Math.min(1, containerWidth / A4_PREVIEW_WIDTH_PX);
+      const viewportWidth = previewViewportRef.current?.clientWidth ?? A4_PREVIEW_WIDTH_PX;
+      const viewportHeight = previewViewportRef.current?.clientHeight ?? A4_PREVIEW_HEIGHT_PX;
+
+      const widthScale = viewportWidth / A4_PREVIEW_WIDTH_PX;
+      const heightScale = viewportHeight / A4_PREVIEW_HEIGHT_PX;
+      const nextScale =
+        zoomMode === "actual"
+          ? 1
+          : zoomMode === "fitWidth"
+            ? Math.min(1, widthScale)
+            : Math.min(1, widthScale, heightScale);
+
       setPreviewScale(nextScale);
     };
 
@@ -517,12 +530,12 @@ function PDFDownloadableResume(props: PDFDownloadableResumeProps) {
       updateScale();
     });
 
-    observer.observe(previewContainerRef.current);
+    observer.observe(previewViewportRef.current);
 
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [zoomMode]);
 
   useEffect(() => {
     const handleBeforePrint = () => setIsPrinting(true);
@@ -556,7 +569,7 @@ function PDFDownloadableResume(props: PDFDownloadableResumeProps) {
   if (!isClient) return null;
 
   return (
-    <div ref={previewContainerRef}>
+    <div>
       <button
         type="button"
         onClick={handleDownload}
@@ -574,7 +587,50 @@ function PDFDownloadableResume(props: PDFDownloadableResumeProps) {
         ) : "Download PDF"}
       </button>
 
-      <div className="overflow-x-auto pb-3 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto print:overflow-visible print:max-h-none print:pb-0">
+      <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Zoom</span>
+        <button
+          type="button"
+          onClick={() => setZoomMode("actual")}
+          className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+            zoomMode === "actual"
+              ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+              : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+          }`}
+          aria-pressed={zoomMode === "actual"}
+        >
+          100%
+        </button>
+        <button
+          type="button"
+          onClick={() => setZoomMode("fitWidth")}
+          className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+            zoomMode === "fitWidth"
+              ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+              : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+          }`}
+          aria-pressed={zoomMode === "fitWidth"}
+        >
+          Fit Width
+        </button>
+        <button
+          type="button"
+          onClick={() => setZoomMode("fitPage")}
+          className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+            zoomMode === "fitPage"
+              ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+              : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+          }`}
+          aria-pressed={zoomMode === "fitPage"}
+        >
+          Fit Page
+        </button>
+      </div>
+
+      <div
+        ref={previewViewportRef}
+        className="overflow-x-auto overflow-y-auto pb-3 lg:h-[calc(100vh-11rem)] print:overflow-visible print:h-auto print:pb-0"
+      >
         <div
           className="origin-top-left print:transform-none"
           style={{

@@ -55,6 +55,7 @@ export function ProfessionalResumeTemplate({ data }: { data: ResumePreviewData }
                     <span className="italic">{exp.company || "Company"}</span>
                     {exp.location && <span className="text-[11px]">{exp.location}</span>}
                   </div>
+                  {exp.description && <p className="text-[12px] leading-relaxed mb-1.5">{exp.description}</p>}
                   {exp.achievements.length > 0 && (
                     <ul className="list-disc pl-5 mt-1.5 space-y-0.5 text-[12px] leading-relaxed">
                       {exp.achievements.map((ach, i) => <li key={i}>{ach}</li>)}
@@ -81,6 +82,7 @@ export function ProfessionalResumeTemplate({ data }: { data: ResumePreviewData }
                     {edu.location && <span className="text-[11px]">{edu.location}</span>}
                   </div>
                   {edu.grade && <div className="text-[11px] mt-0.5">Grade: {edu.grade}</div>}
+                  {edu.description && <p className="text-[12px] leading-relaxed mt-1">{edu.description}</p>}
                 </div>
               ))}
             </div>
