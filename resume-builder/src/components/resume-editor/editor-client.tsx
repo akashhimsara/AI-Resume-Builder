@@ -40,6 +40,8 @@ type EditorClientProps = {
 };
 
 const AUTO_SAVE_DELAY_MS = 1200;
+const A4_PREVIEW_WIDTH_PX = 794;
+const A4_PREVIEW_HEIGHT_PX = 1123;
 
 function todayAsDateInput() {
   return new Date().toISOString().slice(0, 10);
@@ -288,7 +290,7 @@ export function EditorClient({ resumeId, initialData }: EditorClientProps) {
   };
 
   return (
-    <div className="mx-auto mt-6 grid w-full max-w-[1480px] gap-8 lg:grid-cols-12 print:mt-0 print:block print:max-w-none">
+    <div className="mx-auto mt-6 grid w-full max-w-[1640px] gap-8 lg:grid-cols-12 print:mt-0 print:block print:max-w-none">
       <div className="lg:col-span-12 rounded-3xl border border-slate-200 glass-panel p-6 shadow-sm mb-2 print:hidden">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -309,7 +311,7 @@ export function EditorClient({ resumeId, initialData }: EditorClientProps) {
         </div>
       </div>
 
-      <div className="space-y-6 lg:col-span-7 print:hidden">
+      <div className="space-y-6 lg:col-span-6 print:hidden">
         {/* Template Selector UI */}
         <div className="flex flex-col gap-4 rounded-2xl glass-panel p-5">
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -445,7 +447,7 @@ export function EditorClient({ resumeId, initialData }: EditorClientProps) {
         />
       </div>
 
-      <div className="min-w-0 lg:col-span-5 print:col-span-12 print:m-0 print:p-0">
+      <div className="min-w-0 lg:col-span-6 print:col-span-12 print:m-0 print:p-0">
         <div className="sticky top-6 print:static">
           {/* PDF Download Button and Preview */}
           <PDFDownloadableResume
@@ -486,13 +488,53 @@ interface PDFDownloadableResumeProps {
 // (removed duplicate useEffect import)
 
 function PDFDownloadableResume(props: PDFDownloadableResumeProps) {
+  const previewContainerRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!previewContainerRef.current) {
+      return;
+    }
+
+    const updateScale = () => {
+      const containerWidth = previewContainerRef.current?.clientWidth ?? A4_PREVIEW_WIDTH_PX;
+      const nextScale = Math.min(1, containerWidth / A4_PREVIEW_WIDTH_PX);
+      setPreviewScale(nextScale);
+    };
+
+    updateScale();
+
+    const observer = new ResizeObserver(() => {
+      updateScale();
+    });
+
+    observer.observe(previewContainerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleBeforePrint = () => setIsPrinting(true);
+    const handleAfterPrint = () => setIsPrinting(false);
+
+    window.addEventListener("beforeprint", handleBeforePrint);
+    window.addEventListener("afterprint", handleAfterPrint);
+
+    return () => {
+      window.removeEventListener("beforeprint", handleBeforePrint);
+      window.removeEventListener("afterprint", handleAfterPrint);
+    };
   }, []);
 
   const handleDownload = async () => {
@@ -514,7 +556,7 @@ function PDFDownloadableResume(props: PDFDownloadableResumeProps) {
   if (!isClient) return null;
 
   return (
-    <div>
+    <div ref={previewContainerRef}>
       <button
         type="button"
         onClick={handleDownload}
@@ -532,9 +574,23 @@ function PDFDownloadableResume(props: PDFDownloadableResumeProps) {
         ) : "Download PDF"}
       </button>
 
-      <div ref={previewRef} className="bg-white print:bg-white">
-        <ResumePreview {...props} />
+      <div className="overflow-x-auto pb-3 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto print:overflow-visible print:max-h-none print:pb-0">
+        <div
+          className="origin-top-left print:transform-none"
+          style={{
+            width: `${A4_PREVIEW_WIDTH_PX}px`,
+            minHeight: `${A4_PREVIEW_HEIGHT_PX}px`,
+            transform: isPrinting ? "none" : `scale(${previewScale})`,
+            marginBottom: isPrinting ? "0px" : `${A4_PREVIEW_HEIGHT_PX * (previewScale - 1)}px`,
+          }}
+        >
+          <div ref={previewRef} className="h-full w-full bg-white print:bg-white">
+            <ResumePreview {...props} />
+          </div>
+        </div>
       </div>
+
+      {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
     </div>
   );
 }
