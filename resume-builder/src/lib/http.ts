@@ -16,8 +16,30 @@ export function handleRouteError(error: unknown) {
   }
 
   if (typeof error === "object" && error !== null) {
-    const maybePrismaError = error as { code?: unknown; message?: unknown };
+    const maybePrismaError = error as { code?: unknown; name?: unknown; message?: unknown };
     const code = maybePrismaError.code;
+    const name = maybePrismaError.name;
+    const message = typeof maybePrismaError.message === "string" ? maybePrismaError.message : "";
+
+    if (name === "PrismaClientInitializationError") {
+      if (message.includes("Can't reach database server")) {
+        return fail("Unable to reach the database server", 503, "DATABASE_UNAVAILABLE");
+      }
+
+      if (message.includes("Authentication failed") || message.includes("password authentication failed")) {
+        return fail("Database authentication failed", 503, "DATABASE_AUTH_FAILED");
+      }
+
+      if (message.includes("Environment variable not found")) {
+        return fail("Required database environment variable is missing", 500, "ENV_VAR_MISSING");
+      }
+
+      if (message.includes("Error validating datasource") || message.includes("the URL must start with")) {
+        return fail("Database connection string is invalid", 500, "DATABASE_URL_INVALID");
+      }
+
+      return fail("Database initialization failed", 503, "DATABASE_INIT_FAILED");
+    }
 
     if (typeof code === "string") {
       if (code === "P1001") {
