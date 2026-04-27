@@ -11,7 +11,6 @@ https://ai-resume-builder-g43e.vercel.app/
 - Resume CRUD operations with structured editor sections
 - AI tools for summary and bullet improvement
 - Resume template preview and PDF export
-- Billing and upgrade flow integration
 
 ## Tech Stack
 - Next.js (App Router)
