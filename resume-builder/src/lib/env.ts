@@ -64,11 +64,17 @@ export function getAppUrl() {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
 
   if (appUrl) {
-    return appUrl;
+    return appUrl.replace(/\/+$/, "");
+  }
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) {
+    const normalized = vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`;
+    return normalized.replace(/\/+$/, "");
   }
 
   if (env.NODE_ENV === "production") {
-    console.warn("NEXT_PUBLIC_APP_URL is missing in production; falling back to http://localhost:3000");
+    console.warn("NEXT_PUBLIC_APP_URL and VERCEL_URL are missing in production; falling back to http://localhost:3000");
   }
 
   return "http://localhost:3000";

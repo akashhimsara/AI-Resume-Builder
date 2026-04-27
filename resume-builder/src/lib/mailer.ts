@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import { getEmailEnv } from "@/lib/env";
 
 let cachedTransporter: nodemailer.Transporter | null = null;
+let hasVerifiedTransporter = false;
 
 function getTransporter() {
   if (cachedTransporter) {
@@ -9,10 +10,12 @@ function getTransporter() {
   }
 
   const emailEnv = getEmailEnv();
+  const secure = emailEnv.SMTP_PORT === 465 ? true : emailEnv.SMTP_SECURE;
+
   cachedTransporter = nodemailer.createTransport({
     host: emailEnv.SMTP_HOST,
     port: emailEnv.SMTP_PORT,
-    secure: emailEnv.SMTP_SECURE,
+    secure,
     auth: {
       user: emailEnv.SMTP_USER,
       pass: emailEnv.SMTP_PASS,
@@ -28,6 +31,12 @@ export async function sendResetPasswordEmail(input: {
 }) {
   const emailEnv = getEmailEnv();
   const transporter = getTransporter();
+
+  // Verify credentials once in production so SMTP misconfiguration fails with a clear server log.
+  if (process.env.NODE_ENV === "production" && !hasVerifiedTransporter) {
+    await transporter.verify();
+    hasVerifiedTransporter = true;
+  }
 
   await transporter.sendMail({
     from: `"${emailEnv.EMAIL_FROM_NAME}" <${emailEnv.EMAIL_FROM}>`,

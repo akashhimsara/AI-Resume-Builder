@@ -179,6 +179,27 @@ export async function requestPasswordReset(input: ForgotPasswordInput): Promise<
       resetUrl,
     });
   } catch (error) {
+    console.error("Password reset email failed", {
+      userId: user.id,
+      emailDomain: user.email.split("@")[1] ?? "unknown",
+      appUrl: getAppUrl(),
+      smtp: {
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        secure: process.env.SMTP_SECURE,
+        userConfigured: Boolean(process.env.SMTP_USER),
+        passConfigured: Boolean(process.env.SMTP_PASS),
+      },
+      error:
+        error instanceof Error
+          ? {
+              name: error.name,
+              message: error.message,
+              stack: error.stack,
+            }
+          : error,
+    });
+
     if (env.NODE_ENV !== "production") {
       console.warn("Password reset email sending failed in development:", error);
       console.info(`Password reset link (dev fallback): ${resetUrl}`);
