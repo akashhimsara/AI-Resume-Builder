@@ -179,13 +179,15 @@ export async function requestPasswordReset(input: ForgotPasswordInput): Promise<
       resetUrl,
     });
   } catch (error) {
+    // Keep the endpoint response generic even if email delivery fails.
+    // This avoids leaking operational details and preserves the UX contract.
+    console.error("Password reset email sending failed:", error);
+
     if (env.NODE_ENV !== "production") {
-      console.warn("Password reset email sending failed in development:", error);
       console.info(`Password reset link (dev fallback): ${resetUrl}`);
-      return;
     }
 
-    throw new AppError("Unable to send password reset email", 500, "EMAIL_SEND_FAILED");
+    return;
   }
 
   if (env.NODE_ENV !== "production") {
