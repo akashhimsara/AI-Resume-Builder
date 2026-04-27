@@ -20,7 +20,9 @@ if (!parsedCore.success) {
   throw new Error("Environment validation failed");
 }
 
-if (parsedCore.data.NODE_ENV === "production") {
+const isNextProductionBuild = process.env.NEXT_PHASE === "phase-production-build";
+
+if (parsedCore.data.NODE_ENV === "production" && !isNextProductionBuild) {
   const databaseUrl = new URL(parsedCore.data.DATABASE_URL);
   const directUrl = new URL(parsedCore.data.DIRECT_URL);
 
@@ -30,6 +32,19 @@ if (parsedCore.data.NODE_ENV === "production") {
 
   if (directUrl.searchParams.get("sslmode") !== "require") {
     throw new Error("DIRECT_URL must include sslmode=require in production");
+  }
+}
+
+if (parsedCore.data.NODE_ENV === "production" && isNextProductionBuild) {
+  const databaseUrl = new URL(parsedCore.data.DATABASE_URL);
+  const directUrl = new URL(parsedCore.data.DIRECT_URL);
+
+  if (databaseUrl.searchParams.get("sslmode") !== "require") {
+    console.warn("DATABASE_URL should include sslmode=require in production runtime");
+  }
+
+  if (directUrl.searchParams.get("sslmode") !== "require") {
+    console.warn("DIRECT_URL should include sslmode=require in production runtime");
   }
 }
 

@@ -5,6 +5,8 @@ function assertPrismaConnectionConfig() {
     return;
   }
 
+  const isNextProductionBuild = process.env.NEXT_PHASE === "phase-production-build";
+
   const databaseUrl = process.env.DATABASE_URL;
   const directUrl = process.env.DIRECT_URL;
 
@@ -27,11 +29,19 @@ function assertPrismaConnectionConfig() {
   }
 
   if (parsedDatabaseUrl.searchParams.get("sslmode") !== "require") {
-    throw new Error("DATABASE_URL must include sslmode=require in production");
+    if (isNextProductionBuild) {
+      console.warn("DATABASE_URL should include sslmode=require in production runtime");
+    } else {
+      throw new Error("DATABASE_URL must include sslmode=require in production");
+    }
   }
 
   if (parsedDirectUrl.searchParams.get("sslmode") !== "require") {
-    throw new Error("DIRECT_URL must include sslmode=require in production");
+    if (isNextProductionBuild) {
+      console.warn("DIRECT_URL should include sslmode=require in production runtime");
+    } else {
+      throw new Error("DIRECT_URL must include sslmode=require in production");
+    }
   }
 }
 
